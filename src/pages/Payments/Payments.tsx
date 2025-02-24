@@ -6,7 +6,7 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/16/solid";
 import PaymentsTable from './PaymentsTable';
-import { request } from '../../utils/request';
+import { request, clearCache } from '../../utils/request';
 import { toast } from "react-toastify";
 import config from '../../data/config';
 import PaymentDialog from './PaymentDialog';
@@ -46,7 +46,8 @@ const Payments = () => {
           last: res.data.last_page,
         });
       },
-      onError: (err)=>toast(err.message)
+      onError: (err)=>toast(err.message),
+      cacheKey: 'payments'
     });
     setBusy(dispatch, false);
   };
@@ -54,15 +55,24 @@ const Payments = () => {
     load();
   }, []);
 
-  const gotoPreviousPage = ()=> load(pagination.previous);
+  const gotoPreviousPage = ()=> {
+    clearCache('payments');
+    load(pagination.previous);
+  }
   const gotoPage = (e: any)=> {
     const value = parseInt(e.target.innerText.trim());
     if (pagerTimerRef.current) clearTimeout(pagerTimerRef.current);
     if (value) {
-      pagerTimerRef.current = setTimeout(()=> load(value), 1500);
+      pagerTimerRef.current = setTimeout(()=> {
+        clearCache('payments');
+        load(value);
+      }, 1500);
     }
   };
-  const gotoNextPage = ()=> load(pagination.next);
+  const gotoNextPage = ()=> {
+    clearCache('payments');
+    load(pagination.next);
+  }
 
   const addToPayment = () => {
     setShowPaymentDialog({
@@ -87,6 +97,10 @@ const Payments = () => {
 
   React.useEffect(()=> {
     if (signal && signal.type == 'show-payment') viewPayment(signal.data);
+    if (signal && signal.type == 'refresh-payments') {
+      clearCache('payments');
+      load();
+    }
   }, [signal]);
 
   return (
@@ -127,7 +141,7 @@ const Payments = () => {
         <PaymentDialog
           closeFn={()=>setShowPaymentDialog(false)}
           failFn={(err: any)=> toast(err.message)}
-          successFn={()=>{ setShowPaymentDialog(false); load(); }}
+          successFn={()=>{ setShowPaymentDialog(false); clearCache('payments'); load(pagination.current); }}
           data={showPaymentDialog}
         />
       }

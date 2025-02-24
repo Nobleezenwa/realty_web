@@ -47,7 +47,6 @@ const Header = (props: {
         } 
       };
     }
-    /*
     else if (pathname.substring(0, '/realtors'.length).toLowerCase() == '/realtors') {
       searchDetails = {
         url: config.backend + `/api/users?query=${query}`,
@@ -59,7 +58,6 @@ const Header = (props: {
         } 
       };
     }
-    */
    //TO-DO: commissions search
     else if (pathname.substring(0, '/payments'.length).toLowerCase() == '/payments') {
       searchDetails = {

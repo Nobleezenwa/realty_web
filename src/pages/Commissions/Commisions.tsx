@@ -5,7 +5,7 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/16/solid";
 import CommissionsTable from './CommissionsTable';
-import { request } from '../../utils/request';
+import { request, clearCache } from '../../utils/request';
 import { toast } from "react-toastify";
 import config from '../../data/config';
 import CommissionDialog from './CommissionDialog';
@@ -46,7 +46,8 @@ const Commissions = () => {
           last: res.data.last_page,
         });
       },
-      onError: (err)=>toast(err.message)
+      onError: (err)=>toast(err.message),
+      cacheKey: 'commissions'
     });
     setBusy(dispatch, false);
   };
@@ -54,15 +55,24 @@ const Commissions = () => {
     load();
   }, []);
 
-  const gotoPreviousPage = ()=> load(pagination.previous);
+  const gotoPreviousPage = ()=> {
+    clearCache(`commissions`);
+    load(pagination.previous);
+  }
   const gotoPage = (e: any)=> {
     const value = parseInt(e.target.innerText.trim());
     if (pagerTimerRef.current) clearTimeout(pagerTimerRef.current);
     if (value) {
-      pagerTimerRef.current = setTimeout(()=> load(value), 1500);
+      pagerTimerRef.current = setTimeout(()=> {
+        clearCache(`commissions`);
+        load(value);
+      }, 1500);
     }
   };
-  const gotoNextPage = ()=> load(pagination.next);
+  const gotoNextPage = ()=> {
+    clearCache(`commissions`);
+    load(pagination.next);
+  }
 
   const viewCommission = async (commission_id: any)=> {
     setBusy(dispatch, true);
@@ -87,7 +97,10 @@ const Commissions = () => {
       url: config.backend + '/api/sale',
       headers: {'Authorization': `Bearer ${userSession.token}`},
       formData: sale,
-      callback: load,
+      callback: ()=>{
+        clearCache(`commissions`);
+        load(pagination.current);
+      },
       onError: (err)=> toast(err.message)
     });
     setBusy(dispatch, false);
@@ -95,6 +108,10 @@ const Commissions = () => {
 
   React.useEffect(()=> {
     if (signal && signal.type == 'show-commission') viewCommission(signal.data);
+    if (signal && signal.type == 'refresh-commissions') {
+      clearCache('commissions');
+      load();
+    }
   }, [signal]);
 
   return (
@@ -129,7 +146,7 @@ const Commissions = () => {
         <CommissionDialog
           closeFn={()=>setShowCommissionDialog(false)}
           failFn={(err: any)=> toast(err.message)}
-          successFn={()=>{ setShowCommissionDialog(false); load(); }}
+          successFn={()=>{ setShowCommissionDialog(false); clearCache(`commissions`); load(); }}
           data={showCommissionDialog}
         />
       }

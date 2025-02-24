@@ -60,7 +60,11 @@ const RealtorsTable: React.FC<RealtorsTableProps> = ({data, viewRealtor, markRea
                 <img src={realtor.profile_photo || User} alt="User" className="min-w-12 max-w-12 min-h-12 max-h-12 rounded-full" />
               </div>
               <p className="text-black dark:text-white">
-                <span className="block">{realtor.username}</span>
+                <span className="block">{
+                  realtor.account_name && realtor.account_name.trim() != ""?
+                  `${realtor.account_name} (${realtor.username})` :
+                  `${realtor.username} (${realtor.email})`
+                }</span>
                 <span className="block text-xs">Joined: {timeAgo(realtor.created_at)}</span>
               </p>
             </div>

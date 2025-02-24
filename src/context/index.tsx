@@ -8,7 +8,7 @@ const initialState = {
   userSession: null,
   loginInfo: null,
   hints: null,
-  dashData: null,
+  //dashData: null,
   profile: null,
   signal: null,
   referrer: null,
@@ -21,7 +21,7 @@ export const reducer: Reducer<any, {value: any, type: string}> = (state, action)
     case "USER_SESSION": { return { ...state, userSession: action.value }; }
     case "LOGIN_INFO": { return { ...state, loginInfo: action.value }; }
     case "HINTS": { return { ...state, hints: action.value }; }
-    case "DASH_DATA": { return { ...state, dashData: action.value }; }
+    //case "DASH_DATA": { return { ...state, dashData: action.value }; }
     case "PROFILE": { return { ...state, profile: action.value }; }
     case "SIGNAL": { return { ...state, signal: action.value }; }
     case "REFERRER": { return { ...state, referrer: action.value }; }
@@ -69,7 +69,7 @@ export const setUserSession = (dispatch: Function, value: any) => {
 };
 export const setLoginInfo = (dispatch: Function, value: any) => dispatch({ type: "LOGIN_INFO", value });
 export const setHints = (dispatch: Function, value: any) => dispatch({ type: "HINTS", value });
-export const setDashData = (dispatch: Function, value: any) => dispatch({ type: "DASH_DATA", value });
+//export const setDashData = (dispatch: Function, value: any) => dispatch({ type: "DASH_DATA", value });
 export const setProfile = (dispatch: Function, value: any) => dispatch({ type: "PROFILE", value });
 export const setSignal = (dispatch: Function, value: any) => dispatch({ type: "SIGNAL", value });
 export const setReferrer = (dispatch: Function, value: any) => dispatch({ type: "REFERRER", value });

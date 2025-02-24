@@ -4,7 +4,7 @@ import {
     PlusIcon,
     TrashIcon,
 } from "@heroicons/react/16/solid";
-import { request } from '../../utils/request';
+import { request, clearCache } from '../../utils/request';
 import { toast } from "react-toastify";
 import config from '../../data/config';
 import PropertyItem from "./PropertyItem"
@@ -42,7 +42,8 @@ const PropertyGroup: React.FC<PropertyGroupProps> = ({id, name, description, edi
                 setProperties((prev: any[]) => ([...res.data]));
                 //console.log(res);
             },
-            onError: (err) => toast(err.message)
+            onError: (err) => toast(err.message),
+            cacheKey: `properties/${id}`
         });
     };
     
@@ -103,7 +104,10 @@ const PropertyGroup: React.FC<PropertyGroupProps> = ({id, name, description, edi
                     method: 'DELETE',
                     url: config.backend + `/api/property/${property_id}`,
                     headers: { 'Authorization': `Bearer ${userSession.token}` },
-                    callback: load,
+                    callback: ()=>{
+                        clearCache(`properties/${id}`);
+                        load();
+                    },
                     onError: (err: any) => toast(err.message)
                 });
 
@@ -115,6 +119,10 @@ const PropertyGroup: React.FC<PropertyGroupProps> = ({id, name, description, edi
 
     React.useEffect(()=> {
         if (signal && signal.type == 'show-property') viewProperty(signal.data);
+        if (signal && signal.type == 'refresh-categories') {
+            clearCache(`properties/${id}`);
+            load();
+        }
     }, [signal]);
 
     return (
@@ -160,7 +168,7 @@ const PropertyGroup: React.FC<PropertyGroupProps> = ({id, name, description, edi
                 <PropertyDialog
                     closeFn={() => setShowPropertyDialog(false)}
                     failFn={(err: any) => toast(err.message)}
-                    successFn={() => { setShowPropertyDialog(false); load(); }}
+                    successFn={() => { setShowPropertyDialog(false); clearCache(`properties/${id}`); load(); }}
                     data={showPropertyDialog}
                 />
             }

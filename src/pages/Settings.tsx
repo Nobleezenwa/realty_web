@@ -14,7 +14,6 @@ import { validateEmail, validateName, validatePassword } from '../utils/validate
 import config from '../data/config';
 import SwitcherOne from '../components/Switchers/SwitcherOne';
 
-
 const Settings = () => {
   const [controller, dispatch] = useDashboardController();
   const { userSession, profile, loginInfo, adminConfig } = controller;
@@ -99,16 +98,6 @@ const Settings = () => {
   const handleSubmitPI = async (event: any) => {
     event.preventDefault();
 
-    let validation: any;
-
-    validation = validateName(formData.username);
-    if (!validation.isValid) return toast(validation.errMsg);
-    formData.username = validation.validated;
-
-    validation = validateEmail(formData.email);
-    if (!validation.isValid) return toast(validation.errMsg);
-    formData.email = validation.validated;
-
     setBusy(dispatch, true);
 
     const keys = [
@@ -139,11 +128,11 @@ const Settings = () => {
   const updatePP = async (event: any) => {
     event.preventDefault();
 
-    setBusy(dispatch, true);
-
     if (formData.profile_photo == "") return toast("Set property display image.");
     if (!formData.profile_photo.type.startsWith('image/')) return toast("Invalid profile photo.");
     if (formData.profile_photo.size > 2048000) return toast("Image file size must not exceed 2MB.");
+
+    setBusy(dispatch, true);
 
     const data = new FormData();
     data.append('profile_photo', formData.profile_photo);

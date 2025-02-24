@@ -5,7 +5,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/16/solid";
-import { request } from '../../utils/request';
+import { request, clearCache } from '../../utils/request';
 import { toast } from "react-toastify";
 import config from '../../data/config';
 import CategoryDialog from './CategoryDialog';
@@ -18,7 +18,7 @@ import ConfirmationDialog from '../../components/Dialog/ConfirmationDialog';
 
 const Properties = () => {
   const [controller, dispatch] = useDashboardController();
-  const { userSession } = controller;
+  const { userSession, signal } = controller;
 
   const [showCategoryDialog, setShowCategoryDialog] = React.useState(false);
   const [confirmation, setConfirmation] = React.useState<any>(false);
@@ -47,7 +47,8 @@ const Properties = () => {
           last: res.data.last_page,
         });
       },
-      onError: (err)=>toast(err.message)
+      onError: (err)=>toast(err.message),
+      cacheKey: 'categories'
     });
     setBusy(dispatch, false);
   };
@@ -55,15 +56,21 @@ const Properties = () => {
     load();
   }, []);
 
-  const gotoPreviousPage = ()=> load(pagination.previous);
+  const gotoPreviousPage = ()=> {
+    clearCache('categories');
+    load(pagination.previous);
+  };
   const gotoPage = (e: any)=> {
     const value = parseInt(e.target.innerText.trim());
     if (pagerTimerRef.current) clearTimeout(pagerTimerRef.current);
     if (value) {
-      pagerTimerRef.current = setTimeout(()=> load(value), 1500);
+      pagerTimerRef.current = setTimeout(()=>{ clearCache('categories'); load(value); }, 1500);
     }
   };
-  const gotoNextPage = ()=> load(pagination.next);
+  const gotoNextPage = ()=> {
+    clearCache('categories');
+    load(pagination.next);
+  };
 
   const editCategory = (category_id: any)=> {
     setShowCategoryDialog(categories.find((c: any) => c.id == category_id));
@@ -82,7 +89,10 @@ const Properties = () => {
           method: 'DELETE',
           url: config.backend + `/api/properties/category/${category_id}`,
           headers: {'Authorization': `Bearer ${userSession.token}`},
-          callback: load,
+          callback: ()=>{
+            clearCache('categories');
+            load(pagination.current);
+          },
           onError: (err: any)=>toast(err.message)
         });
     
@@ -91,6 +101,13 @@ const Properties = () => {
       closeFn: ()=>setConfirmation(false)
     })
   };
+
+  React.useEffect(()=> {
+    if (signal && signal.type == 'refresh-categories') {
+      clearCache('payments');
+      load();
+    }
+  }, [signal]);
 
   return (
     <>
@@ -143,7 +160,7 @@ const Properties = () => {
         <CategoryDialog
           closeFn={()=>setShowCategoryDialog(false)}
           failFn={(err: any)=> toast(err.message)}
-          successFn={()=>{ setShowCategoryDialog(false); load(); }}
+          successFn={()=>{ setShowCategoryDialog(false); clearCache('categories'); load(); }}
           data={showCategoryDialog}
         />
       }

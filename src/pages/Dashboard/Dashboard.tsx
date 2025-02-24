@@ -8,40 +8,46 @@ import {
   BanknotesIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/solid"
-import { request } from '../../utils/request';
+import { clearCache, request } from '../../utils/request';
 import { toast } from "react-toastify";
 import config from '../../data/config';
 import {  
   useDashboardController,
-  setDashData,
 } from '../../context'
 import { shortenNumber } from '../../utils/shortenNumber';
 
 
 const Dashboard: React.FC = () => {
-  const [controller, dispatch] = useDashboardController();
-  const { userSession, dashData } = controller;
+  const [controller] = useDashboardController();
+  const { userSession, signal } = controller;
+
+  const [dashData, setDashData] = React.useState<any>(null);
 
   const load = async ()=> {
-    if (!dashData && userSession.as == 'admin') {
-      //fetch dash data
       await request({
         method: 'GET',
         url: config.backend + '/api/dashboard',
         headers: {'Authorization': `Bearer ${userSession.token}`},
         callback: (response)=> {
           //console.log(response.data);
-          setDashData(dispatch, response.data);
+          setDashData(response.data);
         },
-        onError: (err)=> toast(err.message)
+        onError: (err)=> toast(err.message),
+        cacheKey: 'dashboard'
       });
-    }
   };
 
   React.useEffect(()=>{
     load();
   }, []);
-  
+
+  React.useEffect(()=> {
+    if (signal && signal.type == 'refresh-dashboard') {
+      clearCache('dashoard');
+      load();
+    }
+  }, [signal]);
+
   return ( 
     <>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4 2xl:gap-7.5">

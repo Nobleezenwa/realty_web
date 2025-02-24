@@ -5,12 +5,23 @@ import Cover from '../../images/cover.jpg';
 import User from '../../images/user.png';
 import config from '../../data/config';
 import { Link } from 'react-router-dom';
+import {  
+  useDashboardController,
+} from '../../context';
+
 
 const RealtorDialog: React.FC<any> = ({closeFn, markRealtorFn, data}) => {
   const {data: realtor} = data;
+  
+  const [controller, dispatch] = useDashboardController();
+  const { userSession } = controller;
+
+  const title = realtor.account_name && realtor.account_name.trim() != ""?
+                `${realtor.account_name} (${realtor.username})` :
+                `${realtor.username} (${realtor.email})`;
 
   return (
-    <Dialog title={realtor.username + ' (' + realtor.email + ')'} closeFn={closeFn}>
+    <Dialog title={title} closeFn={closeFn}>
         <div className="relative z-20 h-35 md:h-65">
           <img
             src={Cover}
@@ -145,6 +156,20 @@ const RealtorDialog: React.FC<any> = ({closeFn, markRealtorFn, data}) => {
                 </Link>
               </div>
             </div>
+
+            {
+              userSession.as == 'admin' &&
+              <div className="mt-8">
+                <h4 className="mb-2 font-semibold text-black dark:text-white">
+                  Account Info
+                </h4>
+                <div className="flex flex-col items-center xjustify-center gap-0.5">
+                  <p><b>Account Number:</b> {realtor.account_number? realtor.account_number : ""}</p>
+                  <p><b>Bank:</b> {realtor.bank? realtor.bank : ""}</p>
+                  <p><b>Account Name:</b> {realtor.account_name? realtor.account_name : ""}</p>
+                </div>
+              </div>
+            }
           </div>
         </div>
         {markRealtorFn &&

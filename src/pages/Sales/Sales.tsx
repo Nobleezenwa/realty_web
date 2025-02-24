@@ -6,7 +6,7 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/16/solid";
 import SalesTable from './SalesTable';
-import { request } from '../../utils/request';
+import { request, clearCache } from '../../utils/request';
 import { toast } from "react-toastify";
 import config from '../../data/config';
 import SaleDialog from './SaleDialog';
@@ -45,7 +45,8 @@ const Sales = () => {
           last: res.data.last_page,
         });
       },
-      onError: (err)=>toast(err.message)
+      onError: (err)=>toast(err.message),
+      cacheKey: 'sales'
     });
     setBusy(dispatch, false);
   };
@@ -53,15 +54,24 @@ const Sales = () => {
     load();
   }, []);
 
-  const gotoPreviousPage = ()=> load(pagination.previous);
+  const gotoPreviousPage = ()=> {
+    clearCache(`sales`);
+    load(pagination.previous);
+  };
   const gotoPage = (e: any)=> {
     const value = parseInt(e.target.innerText.trim());
     if (pagerTimerRef.current) clearTimeout(pagerTimerRef.current);
     if (value) {
-      pagerTimerRef.current = setTimeout(()=> load(value), 1500);
+      pagerTimerRef.current = setTimeout(()=>{ 
+        clearCache(`sales`);
+        load(value);
+      }, 1500);
     }
   };
-  const gotoNextPage = ()=> load(pagination.next);
+  const gotoNextPage = ()=> {
+    clearCache(`sales`);
+    load(pagination.next);
+  };
 
   const addToSales = () => {
     setShowSaleDialog({
@@ -86,6 +96,10 @@ const Sales = () => {
 
   React.useEffect(()=> {
     if (signal && signal.type == 'show-sale') viewSale(signal.data);
+    if (signal && signal.type == 'refresh-sales') {
+      clearCache('sales');
+      load();
+    }
   }, [signal]);
 
   return (
@@ -126,7 +140,7 @@ const Sales = () => {
         <SaleDialog
           closeFn={()=>setShowSaleDialog(false)}
           failFn={(err: any)=> toast(err.message)}
-          successFn={()=>{ setShowSaleDialog(false); load(); }}
+          successFn={()=>{ setShowSaleDialog(false); clearCache(`sales`); load(pagination.current); }}
           data={showSaleDialog}
         />
       }

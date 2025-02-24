@@ -12,7 +12,7 @@ import {
   ChatBubbleLeftRightIcon,
   Cog8ToothIcon,
 } from "@heroicons/react/24/solid"
-import { useDashboardController } from '../../context';
+import { useDashboardController, setSignal } from '../../context';
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -121,6 +121,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 <NavLink
                   to="/"
                   onClick={()=>setSidebarOpen(false)}
+                  onDoubleClick={()=>setSignal(dispatch, {type: 'refresh-dashboard', data: null})}
                   className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${
                     (pathname == '/') &&
                     'bg-primary hover:bg-primary cursor-default'
@@ -137,6 +138,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 <NavLink
                   to="/properties"
                   onClick={()=>setSidebarOpen(false)}
+                  onDoubleClick={()=>setSignal(dispatch, {type: 'refresh-categories', data: null})}
                   className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${
                     pathname.includes('properties') && 'bg-primary hover:bg-primary cursor-default'
                   }`}
@@ -152,6 +154,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 <NavLink                  
                   to="/realtors"
                   onClick={()=>setSidebarOpen(false)}
+                  onDoubleClick={()=>setSignal(dispatch, {type: 'refresh-realtors', data: null})}
                   className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${
                     pathname.includes('realtors') &&
                     'bg-primary hover:bg-primary cursor-default'
@@ -168,6 +171,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 <NavLink
                   to="/sales"
                   onClick={()=>setSidebarOpen(false)}
+                  onDoubleClick={()=>setSignal(dispatch, {type: 'refresh-sales', data: null})}
                   className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${
                     pathname.includes('sales') && 'bg-primary hover:bg-primary cursor-default'
                   }`}
@@ -183,6 +187,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 <NavLink
                   to="/commissions"
                   onClick={()=>setSidebarOpen(false)}
+                  onDoubleClick={()=>setSignal(dispatch, {type: 'refresh-commissions', data: null})}
                   className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${
                     pathname.includes('commissions') && 'bg-primary hover:bg-primary cursor-default'
                   }`}
@@ -198,6 +203,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 <NavLink
                   to="/payments"
                   onClick={()=>setSidebarOpen(false)}
+                  onDoubleClick={()=>setSignal(dispatch, {type: 'refresh-payments', data: null})}
                   className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4 ${
                     pathname.includes('payments') &&
                     'bg-primary hover:bg-primary cursor-default'

@@ -8,7 +8,7 @@ type requestParams = {
     headers?: Record<string, any>,
     callback?: (arg: any)=>any,
     onError?: (arg: any)=>any,
-    allowCache?: boolean,
+    cacheKey?: string|boolean,
 };
 
 /*
@@ -52,17 +52,16 @@ export const request = async ({method, url, formData, headers, callback, onError
 
 const cache = new Map();
 
-export const request = async ({ method, url, formData, headers, callback, onError, allowCache = true }: requestParams) => {
+export const request = async ({ method, url, formData, headers, callback, onError, cacheKey = false }: requestParams) => {
     headers = {
         Accept: 'application/json',
         ...headers,
     };
 
-    const cacheKey = `${method}:${url}`;
     const now = Date.now();
 
     // Check if response is cached and still valid
-    if (cache.has(cacheKey) && method.toLowerCase() == "get" && allowCache) {
+    if (cache.has(cacheKey) && method.toLowerCase() == "get" && cacheKey) {
         const { timestamp, data } = cache.get(cacheKey);
         const cacheLifespan = 15 * 60 * 1000; // Cache lifespan of 15 minutes
         if (now - timestamp < cacheLifespan) {
@@ -110,6 +109,10 @@ export const request = async ({ method, url, formData, headers, callback, onErro
 };
 
 // Function to clear the cache
-export const clearCache = () => {
+export const clearCache = (cacheKey?: string) => {
+    if (cacheKey) {
+        cache.delete(cacheKey);
+        return;
+    }
     cache.clear();
 };

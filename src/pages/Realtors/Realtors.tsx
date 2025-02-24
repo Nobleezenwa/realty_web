@@ -5,7 +5,7 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/16/solid";
 import RealtorsTable from './RealtorsTable';
-import { request } from '../../utils/request';
+import { request, clearCache } from '../../utils/request';
 import { toast } from "react-toastify";
 import config from '../../data/config';
 import {  
@@ -57,7 +57,8 @@ const Realtors = () => {
           last: res.data.last_page,
         });
       },
-      onError: (err)=>toast(err.message)
+      onError: (err)=>toast(err.message),
+      cacheKey: 'realtors',
     });  
     setBusy(dispatch, false);
   };
@@ -65,15 +66,24 @@ const Realtors = () => {
     load();
   }, []);
 
-  const gotoPreviousPage = ()=> load(pagination.previous);
+  const gotoPreviousPage = ()=> {
+    clearCache(`realtors`);
+    load(pagination.previous);
+  };
   const gotoPage = (e: any)=> {
     const value = parseInt(e.target.innerText.trim());
     if (pagerTimerRef.current) clearTimeout(pagerTimerRef.current);
     if (value) {
-      pagerTimerRef.current = setTimeout(()=> load(value), 1500);
+      pagerTimerRef.current = setTimeout(()=> {
+        clearCache(`realtors`);
+        load(value);
+      }, 1500);
     }
   };
-  const gotoNextPage = ()=> load(pagination.next);
+  const gotoNextPage = ()=> {
+    clearCache(`realtors`);
+    load(pagination.next);
+  };
 
   const viewRealtor = (realtor: any)=> {
     setShowRealtorDialog({
@@ -94,13 +104,22 @@ const Realtors = () => {
       },
       callback: (res)=> {
         toast(res.data.message);
-        load();
+        clearCache(`realtors`);
+        load(pagination.current);
       },
       onError: (err) => toast(err.message),
     });
 
     setBusy(dispatch, false);
   };
+
+  React.useEffect(()=> {
+    if (signal && signal.type == 'show-realtor') viewRealtor(signal.data);
+    if (signal && signal.type == 'refresh-realtors') {
+      clearCache('realtors');
+      load();
+    }
+  }, [signal]);
 
   return (
     <>

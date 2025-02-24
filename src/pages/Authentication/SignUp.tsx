@@ -104,7 +104,7 @@ const SignUp: React.FC = () => {
         callback: (responseData)=> { //console.log(responseData);
           setStage(2);
         },
-        onError: (err)=> toast(err.message),
+        onError: (err)=> toast(err.message)
       });
 
       setBusy(dispatch, false);
