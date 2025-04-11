@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDashboardController } from "../../context";
+import { useDashboardController, setInboxData } from "../../context";
 import User from '../../images/user.png';
 import { request } from '../../utils/request';
 import { toast } from "react-toastify";
@@ -15,9 +15,7 @@ type InboxProps = {
 
 const Inbox: React.FC<InboxProps> = ({viewMessage, pagination, setPagination, setShowEmptyPlaceholder}) => {
     const [controller, dispatch] = useDashboardController();
-    const { userSession } = controller;
-  
-    const [messages, setMessages] = React.useState<any>([]);
+    const { userSession, inboxData } = controller;
   
     const load = async ()=> {
       if (pagination && pagination.fresh) {
@@ -30,7 +28,7 @@ const Inbox: React.FC<InboxProps> = ({viewMessage, pagination, setPagination, se
         url: config.backend + `/api/messages/inbox?page=${page}`,
         headers: {'Authorization': `Bearer ${userSession.token}`},
         callback: (res)=> {
-          setMessages((prev: any[])=> ([...res.data.data]));
+          setInboxData(dispatch, [...res.data.data], true);
           setShowEmptyPlaceholder(res.data.data.length == 0);
           setPagination({
             next: Math.min(res.data.last_page, res.data.current_page + 1),
@@ -47,8 +45,8 @@ const Inbox: React.FC<InboxProps> = ({viewMessage, pagination, setPagination, se
     React.useEffect(()=>{
       load();
     }, [pagination]);
-  
-  
+
+    const messages = inboxData.value? inboxData.value : [];
 
     return (
         <div className={"relative" + (messages.length == 0)? ' mt-8' : ''}>

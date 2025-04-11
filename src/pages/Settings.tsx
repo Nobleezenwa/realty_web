@@ -10,7 +10,7 @@ import {
   setAdminConfig,
 } from '../context'
 import constants from '../data/constants';
-import { validateEmail, validateName, validatePassword } from '../utils/validate';
+import { validateEmail, validatePassword } from '../utils/validate';
 import config from '../data/config';
 import SwitcherOne from '../components/Switchers/SwitcherOne';
 
@@ -43,8 +43,7 @@ const Settings = () => {
     userEmail: "",
     access: profile && profile.level? profile.level : constants.accessLevels.ACCESS_LEVEL_NONE,
     auto_units_deduction: false,
-    upliner_commission: 0,
-    realtor_commission: 0,
+    commission: userSession.as != 'admin' && profile && profile.commission? profile.commission : 0,
   });
 
   useEffect(()=> {
@@ -115,7 +114,6 @@ const Settings = () => {
       headers: {'Authorization': `Bearer ${userSession.token}`},
       formData: data,
       callback: (response) => {
-        //console.log(response);
         toast(response.data.message);
         setProfile(dispatch, response.data.profile);
       },
@@ -253,21 +251,28 @@ const Settings = () => {
     setBusy(dispatch, false);
   };
 
-  const setCommissions: any = async (event: any)=> {
+  const setComission: any = async (event: any)=> {
     event.preventDefault();
+
+    const commission = parseFloat(formData.commission);
+
+    if (isNaN(commission) || commission <= 0) {
+      return toast('Invalid commission.')
+    }
 
     setBusy(dispatch, true);
 
     await request({
       method: 'POST',
-      url: config.backend + '/api/admin/set-config',
+      url: config.backend + (userSession.as == 'admin'? '/api/admin/set-config' : '/api/user/commission'),
       headers: {'Authorization': `Bearer ${userSession.token}`},
-      formData: {
-        "upliner_commission": formData.upliner_commission,
-        "realtor_commission": formData.realtor_commission,
-      },
+      formData: { commission },
       callback: (response) => {
-        setAdminConfig(dispatch, response.data.config);
+        if (userSession.as == 'admin') {
+          setAdminConfig(dispatch, response.data.config);
+        } else {
+          setFormData({ ...formData, commission });
+        }
         toast(response.data.message);
       },
       onError: (err) => toast(err.message),
@@ -745,201 +750,163 @@ const Settings = () => {
           </div>
           {/* <!-- Password Form --> */}
 
-          {/* <!-- Admin Form --> */}
-          {(userSession.as == 'admin') && 
-            <div className="col-span-5">
-              <div className="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-                <div className="border-b border-stroke py-4 px-7 dark:border-strokedark">
-                  <h3 className="font-medium text-black dark:text-white">
-                    Admin Settings
-                  </h3>
-                </div>
-                <div className="p-7">
-
-                  {/* <!-- AUC --> */}
-                  <div className="">
-                    <div className="flex gap-2 items-center mb-5.5 max-w-[450px]">
-                      <label
-                        className="text-sm font-medium text-black dark:text-white"
-                        htmlFor="emailAddress"
-                      >
-                        Automate Units Deduction
-                      </label>
-                      <SwitcherOne enabled={formData.auto_units_deduction} onChange={setAUD} />
+          {/* <!-- Other Settings Form --> */}     
+          <div className="col-span-5">
+            <div className="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
+              <div className="border-b border-stroke py-4 px-7 dark:border-strokedark">
+                <h3 className="font-medium text-black dark:text-white">
+                  Other Settings
+                </h3>
+              </div>
+              <div className="p-7">
+                {(userSession.as == 'admin') && 
+                  <>
+                    {/* <!-- AUC --> */}
+                    <div className="">
+                      <div className="flex gap-2 items-center mb-5.5 max-w-[450px]">
+                        <label
+                          className="text-sm font-medium text-black dark:text-white"
+                          htmlFor="emailAddress"
+                        >
+                          Automate Units Deduction
+                        </label>
+                        <SwitcherOne enabled={formData.auto_units_deduction} onChange={setAUD} />
+                      </div>
                     </div>
+                    {/* <!-- AUC --> */}
+                  </>
+                }
+
+                {/* <!-- ACC --> */}
+                <div className={`flex gap-2 items-center ${(userSession.as == 'admin')? 'pt-6 mt-4 border-t border-stroke dark:border-strokedark' : ''}`}>
+                  <h3 className="font-medium text-black dark:text-white">
+                    Commission
+                  </h3>
+                  <div className="inline-flex items-center rounded-lg overflow-hidden border-[1.5px] border-stroke dark:border-form-strokedark dark:focus:border-primar">
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      max="100"
+                      id="commission"
+                      name="commission"
+                      onChange={handleInputChange}
+                      value={formData.commission}
+                      placeholder="0.00"
+                      className="flex-grow outline-none min-h-full py-3 px-2 bg-transparent text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:bg-form-input dark:text-whitey"
+                    />
+                    <label className="text-black dark:text-white pr-2">%</label>
                   </div>
-                  {/* <!-- AUC --> */}
+                  <button
+                    onClick={setComission}
+                    className="flex justify-center rounded bg-primary py-2 px-6 font-medium text-gray hover:bg-opacity-90"
+                    type="submit"
+                  >
+                    Set
+                  </button>
+                </div>
+                {/* <!-- ACC --> */}
 
-                  {/* <!-- ACC --> */}
-                  <div className="mt-4 pt-6 border-t border-stroke dark:border-strokedark">
-                    <h3 className="font-medium text-black dark:text-white">
-                      Commissions
-                    </h3>
-                    <div className="px-7 pt-4">
-                      <form action="#">
-                        <div className="mb-5.5 flex flex-wrap gap-5.5 flex-row items-end">
-                          <div className="min-w-32 max-w-32">
+                {(userSession.as == 'admin') &&
+                  <>
+                    {/* <!-- Access Level Form --> */}
+                    <div className="mt-4 pt-6 border-t border-stroke dark:border-strokedark">
+                      <fieldset className="border-4 border-dotted border-gray py-2 px-4">
+                        <legend>Assign Level</legend>
+                        <form action="#">
+                          <div className="mb-3 max-w-[450px]">
                             <label
                               className="mb-3 block text-sm font-medium text-black dark:text-white"
-                              htmlFor="realtorCommission"
+                              htmlFor="emailAddress"
                             >
-                              Realtor
+                              Account Email
                             </label>
-                            <div className="flex items-center rounded-lg overflow-hidden border-[1.5px] border-stroke dark:border-form-strokedark dark:focus:border-primar">
+                            <div className="relative">
+                              <span className="absolute left-4.5 top-4">
+                                <svg
+                                  className="fill-current"
+                                  width="20"
+                                  height="20"
+                                  viewBox="0 0 20 20"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <g opacity="0.8">
+                                    <path
+                                      fillRule="evenodd"
+                                      clipRule="evenodd"
+                                      d="M3.33301 4.16667C2.87658 4.16667 2.49967 4.54357 2.49967 5V15C2.49967 15.4564 2.87658 15.8333 3.33301 15.8333H16.6663C17.1228 15.8333 17.4997 15.4564 17.4997 15V5C17.4997 4.54357 17.1228 4.16667 16.6663 4.16667H3.33301ZM0.833008 5C0.833008 3.6231 1.9561 2.5 3.33301 2.5H16.6663C18.0432 2.5 19.1663 3.6231 19.1663 5V15C19.1663 16.3769 18.0432 17.5 16.6663 17.5H3.33301C1.9561 17.5 0.833008 16.3769 0.833008 15V5Z"
+                                      fill=""
+                                    />
+                                    <path
+                                      fillRule="evenodd"
+                                      clipRule="evenodd"
+                                      d="M0.983719 4.52215C1.24765 4.1451 1.76726 4.05341 2.1443 4.31734L9.99975 9.81615L17.8552 4.31734C18.2322 4.05341 18.7518 4.1451 19.0158 4.52215C19.2797 4.89919 19.188 5.4188 18.811 5.68272L10.4776 11.5161C10.1907 11.7169 9.80879 11.7169 9.52186 11.5161L1.18853 5.68272C0.811486 5.4188 0.719791 4.89919 0.983719 4.52215Z"
+                                      fill=""
+                                    />
+                                  </g>
+                                </svg>
+                              </span>
                               <input
-                                type="number"
-                                step="1"
-                                min="0"
-                                max="100"
-                                id="realtorCommission"
-                                name="realtor_commission"
+                                className="w-full rounded border border-stroke bg-gray py-3 pl-11.5 pr-4.5 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white dark:focus:border-primary"
+                                type="email"
+                                name="userEmail"
+                                value={formData.userEmail}
                                 onChange={handleInputChange}
-                                value={formData.realtor_commission}
-                                placeholder="0.00"
-                                className="max-w-[calc(100%-40px)] outline-none min-h-full py-3 px-2 bg-transparent text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:bg-form-input dark:text-whitey"
+                                placeholder="Enter account email to assign the selected status"
                               />
-                              <div className="px-2 py-3">
-                                <label className="mb-1 block text-black dark:text-white">%</label>
-                              </div>
                             </div>
                           </div>
 
-                          <div className="min-w-32 max-w-32">
+                          <div className="mb-3">
                             <label
                               className="mb-3 block text-sm font-medium text-black dark:text-white"
-                              htmlFor="uplinerCommission"
+                              htmlFor="emailAddress"
                             >
-                              Upliner
+                              Access Level
                             </label>
-                            <div className="flex items-center rounded-lg overflow-hidden border-[1.5px] border-stroke dark:border-form-strokedark dark:focus:border-primar">
-                              <input
-                                type="number"
-                                step="1"
-                                min="0"
-                                max="100"
-                                id="uplinerCommission"
-                                name="upliner_commission"
-                                onChange={handleInputChange}
-                                value={formData.upliner_commission}
-                                placeholder="0.00"
-                                className="flex-1 w-[calc(90%-40px)] outline-none min-h-full py-3 px-2 bg-transparent text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:bg-form-input dark:text-whitey"
-                              />
-                              <div className="px-2 py-3">
-                                <label className="mb-1 block text-black dark:text-white">%</label>
-                              </div>
+                            <div className="flex flex-col gap-2">
+                              <label className="block">
+                                <input type="radio" onChange={handleInputChange} value={constants.accessLevels.ACCESS_LEVEL_SUPER_ADMIN} checked={formData.access == constants.accessLevels.ACCESS_LEVEL_SUPER_ADMIN} name="access" />
+                                <span className="px-2"><b>Super Admin</b> (has all access and can add or remove other admins)</span>
+                              </label>
+                              <label className="block">
+                                <input type="radio" onChange={handleInputChange} value={constants.accessLevels.ACCESS_LEVEL_ADMIN} checked={formData.access == constants.accessLevels.ACCESS_LEVEL_ADMIN} name="access" />
+                                <span className="px-2"><b>Admin</b> (has all access but cannot add or remove admins)</span>
+                              </label>
+                              <label className="block">
+                                <input type="radio" onChange={handleInputChange} value={constants.accessLevels.ACCESS_LEVEL_UPLINER} checked={formData.access == constants.accessLevels.ACCESS_LEVEL_UPLINER} name="access" />
+                                <span className="px-2"><b>Upliner</b> (has restricted access but can refer other realtors)</span>
+                              </label>
+                              <label className="block">
+                                <input type="radio" onChange={handleInputChange} value={constants.accessLevels.ACCESS_LEVEL_DOWNLINER} checked={formData.access == constants.accessLevels.ACCESS_LEVEL_DOWNLINER} name="access" />
+                                <span className="px-2"><b>Downliner</b> (has restricted access and cannot refer other realtors)</span>
+                              </label>
+                              <label className="block">
+                                <input type="radio" onChange={handleInputChange} value={constants.accessLevels.ACCESS_LEVEL_NONE} checked={formData.access == constants.accessLevels.ACCESS_LEVEL_NONE} name="access" />
+                                <span className="px-2"><b>Suspended</b> (has no access)</span>
+                              </label>
                             </div>
                           </div>
 
-                          <div>
+                          <div className="flex justify-start gap-4.5">
                             <button
-                              onClick={setCommissions}
-                              className="flex justify-center rounded bg-primary py-2 px-6 mb-2 font-medium text-gray hover:bg-opacity-90"
+                              onClick={assignAL}
+                              className="flex justify-center rounded bg-primary py-2 px-6 font-medium text-gray hover:bg-opacity-90"
                               type="submit"
                             >
-                              Set
+                              Assign
                             </button>
                           </div>
-                        </div>
-                      </form>
+                        </form>
+                      </fieldset>
                     </div>
-                  </div>
-                  {/* <!-- ACC --> */}
-
-                  {/* <!-- Access Level Form --> */}
-                  <div className="mt-4 pt-6 border-t border-stroke dark:border-strokedark">
-                    <form action="#">
-                      <div className="mb-5.5 max-w-[450px]">
-                        <label
-                          className="mb-3 block text-sm font-medium text-black dark:text-white"
-                          htmlFor="emailAddress"
-                        >
-                          Account Email
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-4.5 top-4">
-                            <svg
-                              className="fill-current"
-                              width="20"
-                              height="20"
-                              viewBox="0 0 20 20"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <g opacity="0.8">
-                                <path
-                                  fillRule="evenodd"
-                                  clipRule="evenodd"
-                                  d="M3.33301 4.16667C2.87658 4.16667 2.49967 4.54357 2.49967 5V15C2.49967 15.4564 2.87658 15.8333 3.33301 15.8333H16.6663C17.1228 15.8333 17.4997 15.4564 17.4997 15V5C17.4997 4.54357 17.1228 4.16667 16.6663 4.16667H3.33301ZM0.833008 5C0.833008 3.6231 1.9561 2.5 3.33301 2.5H16.6663C18.0432 2.5 19.1663 3.6231 19.1663 5V15C19.1663 16.3769 18.0432 17.5 16.6663 17.5H3.33301C1.9561 17.5 0.833008 16.3769 0.833008 15V5Z"
-                                  fill=""
-                                />
-                                <path
-                                  fillRule="evenodd"
-                                  clipRule="evenodd"
-                                  d="M0.983719 4.52215C1.24765 4.1451 1.76726 4.05341 2.1443 4.31734L9.99975 9.81615L17.8552 4.31734C18.2322 4.05341 18.7518 4.1451 19.0158 4.52215C19.2797 4.89919 19.188 5.4188 18.811 5.68272L10.4776 11.5161C10.1907 11.7169 9.80879 11.7169 9.52186 11.5161L1.18853 5.68272C0.811486 5.4188 0.719791 4.89919 0.983719 4.52215Z"
-                                  fill=""
-                                />
-                              </g>
-                            </svg>
-                          </span>
-                          <input
-                            className="w-full rounded border border-stroke bg-gray py-3 pl-11.5 pr-4.5 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white dark:focus:border-primary"
-                            type="email"
-                            name="userEmail"
-                            value={formData.userEmail}
-                            onChange={handleInputChange}
-                            placeholder="Enter account email to assign the selected status"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mb-5.5">
-                        <label
-                          className="mb-3 block text-sm font-medium text-black dark:text-white"
-                          htmlFor="emailAddress"
-                        >
-                          Access Level
-                        </label>
-                        <div className="flex flex-col gap-2">
-                          <label className="block">
-                            <input type="radio" onChange={handleInputChange} value={constants.accessLevels.ACCESS_LEVEL_SUPER_ADMIN} checked={formData.access == constants.accessLevels.ACCESS_LEVEL_SUPER_ADMIN} name="access" />
-                            <span className="px-2"><b>Super Admin</b> (has all access and can add or remove other admins)</span>
-                          </label>
-                          <label className="block">
-                            <input type="radio" onChange={handleInputChange} value={constants.accessLevels.ACCESS_LEVEL_ADMIN} checked={formData.access == constants.accessLevels.ACCESS_LEVEL_ADMIN} name="access" />
-                            <span className="px-2"><b>Admin</b> (has all access but cannot add or remove admins)</span>
-                          </label>
-                          <label className="block">
-                            <input type="radio" onChange={handleInputChange} value={constants.accessLevels.ACCESS_LEVEL_UPLINER} checked={formData.access == constants.accessLevels.ACCESS_LEVEL_UPLINER} name="access" />
-                            <span className="px-2"><b>Upliner</b> (has restricted access but can refer other realtors)</span>
-                          </label>
-                          <label className="block">
-                            <input type="radio" onChange={handleInputChange} value={constants.accessLevels.ACCESS_LEVEL_DOWNLINER} checked={formData.access == constants.accessLevels.ACCESS_LEVEL_DOWNLINER} name="access" />
-                            <span className="px-2"><b>Downliner</b> (has restricted access and cannot refer other realtors)</span>
-                          </label>
-                          <label className="block">
-                            <input type="radio" onChange={handleInputChange} value={constants.accessLevels.ACCESS_LEVEL_NONE} checked={formData.access == constants.accessLevels.ACCESS_LEVEL_NONE} name="access" />
-                            <span className="px-2"><b>Suspended</b> (has no access)</span>
-                          </label>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-start gap-4.5">
-                        <button
-                          onClick={assignAL}
-                          className="flex justify-center rounded bg-primary py-2 px-6 font-medium text-gray hover:bg-opacity-90"
-                          type="submit"
-                        >
-                          Assign
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                  {/* <!-- Access Level Form --> */}
-
-                </div>
+                    {/* <!-- Access Level Form --> */}
+                  </>
+                }
               </div>
             </div>
-          }
+          </div>
           {/* <!-- Admin Form --> */}
 
         </div>

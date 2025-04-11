@@ -39,8 +39,7 @@ const PropertyGroup: React.FC<PropertyGroupProps> = ({id, name, description, edi
             method: 'GET',
             url: config.backend + `/api/properties/${id}`,
             callback: (res) => {
-                setProperties((prev: any[]) => ([...res.data]));
-                //console.log(res);
+                setProperties(() => ([...res.data]));
             },
             onError: (err) => toast(err.message),
             cacheKey: `properties/${id}`

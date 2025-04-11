@@ -63,7 +63,11 @@ const DropdownUser = () => {
         reset(dispatch);
         clearCache(); 
       },
-      onError: (err)=>toast(err.message)
+      onError: (err)=>{
+        reset(dispatch);
+        clearCache(); 
+        toast(err.message);
+      }
     });
     setBusy(dispatch, false);
   };

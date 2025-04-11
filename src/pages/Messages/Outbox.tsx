@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDashboardController } from "../../context";
+import { useDashboardController, setOutboxData } from "../../context";
 import User from '../../images/user.png';
 import { request } from '../../utils/request';
 import { toast } from "react-toastify";
@@ -14,10 +14,8 @@ type OutboxProps = {
 };
 
 const Outbox: React.FC<OutboxProps> = ({viewMessage, pagination, setPagination, setShowEmptyPlaceholder}) => {
-    const [controller] = useDashboardController();
-    const { userSession } = controller;
-  
-    const [messages, setMessages] = React.useState<any>([]);
+    const [controller, dispatch] = useDashboardController();
+    const { userSession, outboxData } = controller;
   
     const load = async ()=> {
       if (pagination && pagination.fresh) {
@@ -30,7 +28,7 @@ const Outbox: React.FC<OutboxProps> = ({viewMessage, pagination, setPagination, 
         url: config.backend + `/api/messages/outbox?page=${page}`,
         headers: {'Authorization': `Bearer ${userSession.token}`},
         callback: (res)=> {
-          setMessages((prev: any[])=> ([...res.data.data]));
+          setOutboxData(dispatch, [...res.data.data], true);
           setShowEmptyPlaceholder(res.data.data.length == 0);
           setPagination({
             next: Math.min(res.data.last_page, res.data.current_page + 1),
@@ -48,7 +46,8 @@ const Outbox: React.FC<OutboxProps> = ({viewMessage, pagination, setPagination, 
       load();
     }, [pagination]);
   
-  
+    const messages = outboxData.value? outboxData.value : [];
+
     return (
         <div className={"relative" + (messages.length == 0)? ' mt-8' : ''}>
             {

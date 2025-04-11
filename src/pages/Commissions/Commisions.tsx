@@ -12,16 +12,16 @@ import CommissionDialog from './CommissionDialog';
 import {
   useDashboardController,
   setBusy,
+  setCommissionsData
 } from '../../context';
 import constants from '../../data/constants';
 
 
 const Commissions = () => {
   const [controller, dispatch] = useDashboardController();
-  const { userSession, signal } = controller;
+  const { userSession, commissionsData, signal } = controller;
 
   const [showCommissionDialog, setShowCommissionDialog] = React.useState<any>(false);
-  const [commissions, setCommissions] = React.useState<any>([]);
 
   const [pagination, setPagination] = React.useState<any>(null);
 
@@ -37,8 +37,8 @@ const Commissions = () => {
       method: 'GET',
       url: config.backend + `/api/sales?with_unpaid_commissions&page=${page}`,
       headers: {'Authorization': `Bearer ${userSession.token}`},
-      callback: (res)=> { //console.log(res.data);
-        setCommissions(()=> ([...res.data.data]));
+      callback: (res)=> {
+        setCommissionsData(dispatch, [...res.data.data], true);
         setPagination({
           next: Math.min(res.data.last_page, res.data.current_page + 1),
           previous: Math.max(1, res.data.current_page - 1),
@@ -47,16 +47,15 @@ const Commissions = () => {
         });
       },
       onError: (err)=>toast(err.message),
-      cacheKey: 'commissions'
     });
     setBusy(dispatch, false);
   };
+
   React.useEffect(()=>{
-    load();
-  }, []);
+    if (!commissionsData.isLoaded) load();
+  }, [commissionsData.isLoaded]);
 
   const gotoPreviousPage = ()=> {
-    clearCache(`commissions`);
     load(pagination.previous);
   }
   const gotoPage = (e: any)=> {
@@ -64,13 +63,11 @@ const Commissions = () => {
     if (pagerTimerRef.current) clearTimeout(pagerTimerRef.current);
     if (value) {
       pagerTimerRef.current = setTimeout(()=> {
-        clearCache(`commissions`);
         load(value);
       }, 1500);
     }
   };
   const gotoNextPage = ()=> {
-    clearCache(`commissions`);
     load(pagination.next);
   }
 
@@ -81,7 +78,7 @@ const Commissions = () => {
       url: config.backend + `/api/sales/commission-info/${commission_id}`,
       headers: {'Authorization': `Bearer ${userSession.token}`},
       callback: (response)=>{
-        setShowCommissionDialog({ commission: response.data, sale: commissions.find((c: any) => c.id == commission_id) });      
+        setShowCommissionDialog({commissions: response.data.commissions, sale: commissionsData.value.find((c: any) => c.id == commission_id)});      
       },
       onError: (err)=> toast(err.message)
     });
@@ -90,7 +87,7 @@ const Commissions = () => {
 
   const removeCommission = async (commission_id: any) => {
     setBusy(dispatch, true);
-    const sale = commissions.find((c: any) => c.id == commission_id);
+    const sale = commissionsData.value.find((c: any) => c.id == commission_id);
     sale.status = constants.saleStatus.STATUS_PROCESSING; //status other than completed, will remove sale from commissions list
     await request({
       method: 'PATCH',
@@ -98,7 +95,6 @@ const Commissions = () => {
       headers: {'Authorization': `Bearer ${userSession.token}`},
       formData: sale,
       callback: ()=>{
-        clearCache(`commissions`);
         load(pagination.current);
       },
       onError: (err)=> toast(err.message)
@@ -107,10 +103,13 @@ const Commissions = () => {
   };
 
   React.useEffect(()=> {
-    if (signal && signal.type == 'show-commission') viewCommission(signal.data);
+    if (signal && signal.type == 'show-commission') {
+      viewCommission(signal.data);
+      dispatch({ type: "SIGNAL", value: null });
+    }
     if (signal && signal.type == 'refresh-commissions') {
-      clearCache('commissions');
       load();
+      dispatch({ type: "SIGNAL", value: null });
     }
   }, [signal]);
 
@@ -119,7 +118,7 @@ const Commissions = () => {
       <Breadcrumb pageName="Commissions" />
 
       <div className="min-h-[calc(100vh-250px)]">
-        <CommissionsTable data={commissions} viewCommission={viewCommission} removeCommission={removeCommission} />
+        <CommissionsTable data={commissionsData.value? commissionsData.value : []} viewCommission={viewCommission} removeCommission={removeCommission} />
       </div>
 
       {
@@ -146,7 +145,7 @@ const Commissions = () => {
         <CommissionDialog
           closeFn={()=>setShowCommissionDialog(false)}
           failFn={(err: any)=> toast(err.message)}
-          successFn={()=>{ setShowCommissionDialog(false); clearCache(`commissions`); load(); }}
+          successFn={()=>{ setShowCommissionDialog(false); load(); }}
           data={showCommissionDialog}
         />
       }

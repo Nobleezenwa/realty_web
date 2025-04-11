@@ -17,7 +17,7 @@ const SaleDialog: React.FC<any> = ({closeFn, successFn, failFn, data: _data}) =>
   const [mode, setMode] = React.useState(_mode);
 
   const [controller, dispatch] = useDashboardController();
-  const { userSession, profile } = controller;
+  const { userSession } = controller;
 
   const editFn = (userSession.as == 'admin')? 
                   ()=> setMode('edit') :
@@ -77,6 +77,8 @@ const SaleDialog: React.FC<any> = ({closeFn, successFn, failFn, data: _data}) =>
     _formData.email = validation.validated;
 
     if (!_formData.property_id || _formData.property_id == "") return toast('Select property for this sale.');
+
+    if (userSession.as != 'admin') _formData.realtor_id = userSession.id; //register sale to user
 
     setBusy(dispatch, true);
 
@@ -182,7 +184,7 @@ const SaleDialog: React.FC<any> = ({closeFn, successFn, failFn, data: _data}) =>
           </label>
           <SearchBar
             disabled={(mode != 'edit')}
-            value={formData.property_id}
+            value={data.property? (data.property.name + ' - ' + data.property.short_description) : ""}
             searchFn={searchProperties}
             className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent py-3 px-5 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
           />

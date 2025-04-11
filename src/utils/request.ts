@@ -71,10 +71,13 @@ export const request = async ({ method, url, formData, headers, callback, onErro
             // Cache expired
             cache.delete(cacheKey);
         }
+    } else {
+        cacheKey = false;
     }
 
     // Make HTTP request
     try {
+        console.log(`request: ${method} ${url}`);
         const response = await axios({
             method,
             url,
@@ -85,14 +88,14 @@ export const request = async ({ method, url, formData, headers, callback, onErro
 
         if (responseData.status === 'success') {
             // Cache successful response
-            cache.set(cacheKey, { timestamp: now, data: responseData });
+            if (cacheKey) cache.set(cacheKey, { timestamp: now, data: responseData });
 
             if (typeof callback === 'function') callback(responseData);
             return responseData;
         } else {
             throw responseData;
         }
-    } catch (err: any) {
+    } catch (err: any) { console.log(err);
         const stdErr = {
             status: 'error',
             message:

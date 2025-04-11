@@ -19,7 +19,7 @@ const SignIn: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const [controller, dispatch] =  useDashboardController();
+  const [, dispatch] =  useDashboardController();
 
   // Set initial state for the form data
   const [formData, setFormData] = React.useState({

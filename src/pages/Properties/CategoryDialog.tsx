@@ -37,9 +37,8 @@ const CategoryDialog: React.FC<any> = ({closeFn, successFn, failFn, data}) => {
     if (!validation.isValid) return toast(validation.errMsg);
     formData.name = validation.validated;
 
-    validation = validateText(formData.description);
-    if (!validation.isValid) return toast(validation.errMsg);
-    formData.description = validation.validated;
+    if (formData.description.trim() == "") return toast("Enter category description.");
+    formData.description = formData.description.trim();
 
     setBusy(dispatch, true);
 

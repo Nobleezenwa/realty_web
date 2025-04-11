@@ -6,21 +6,21 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/16/solid";
 import SalesTable from './SalesTable';
-import { request, clearCache } from '../../utils/request';
+import { request } from '../../utils/request';
 import { toast } from "react-toastify";
 import config from '../../data/config';
 import SaleDialog from './SaleDialog';
 import {  
   useDashboardController,
   setBusy,
+  setSalesData
 } from '../../context';
 
 const Sales = () => {
   const [controller, dispatch] = useDashboardController();
-  const { userSession, signal, profile } = controller;
+  const { userSession, salesData, signal, profile } = controller;
 
   const [showSaleDialog, setShowSaleDialog] = React.useState<any>(false);
-  const [sales, setSales] = React.useState<any>([]);
 
   const [pagination, setPagination] = React.useState<any>(null);
 
@@ -37,7 +37,7 @@ const Sales = () => {
       url: config.backend + `/api/sales?page=${page}`,
       headers: {'Authorization': `Bearer ${userSession.token}`},
       callback: (res)=> {
-        setSales((prev: any[])=> ([...res.data.data]))
+        setSalesData(dispatch, res.data.data, true);
         setPagination({
           next: Math.min(res.data.last_page, res.data.current_page + 1),
           previous: Math.max(1, res.data.current_page - 1),
@@ -46,16 +46,14 @@ const Sales = () => {
         });
       },
       onError: (err)=>toast(err.message),
-      cacheKey: 'sales'
     });
     setBusy(dispatch, false);
   };
   React.useEffect(()=>{
-    load();
-  }, []);
+    if (!salesData.isLoaded) load();
+  }, [salesData.isLoaded]);
 
   const gotoPreviousPage = ()=> {
-    clearCache(`sales`);
     load(pagination.previous);
   };
   const gotoPage = (e: any)=> {
@@ -63,13 +61,11 @@ const Sales = () => {
     if (pagerTimerRef.current) clearTimeout(pagerTimerRef.current);
     if (value) {
       pagerTimerRef.current = setTimeout(()=>{ 
-        clearCache(`sales`);
         load(value);
       }, 1500);
     }
   };
   const gotoNextPage = ()=> {
-    clearCache(`sales`);
     load(pagination.next);
   };
 
@@ -82,23 +78,26 @@ const Sales = () => {
 
   const viewSale = (sale: any)=> {
     setShowSaleDialog({
-      data: (typeof sale === 'object') ? sale : sales.find((s: any) => s.id == sale),
+      data: (typeof sale === 'object') ? sale : salesData.value.find((s: any) => s.id == sale),
       mode: 'view',
     });
   };
 
   const editSale = (sale_id: any) => {
     setShowSaleDialog({
-      data: sales.find((s: any) => s.id == sale_id),
+      data: salesData.value.find((s: any) => s.id == sale_id),
       mode: 'edit',
     });
   };
 
   React.useEffect(()=> {
-    if (signal && signal.type == 'show-sale') viewSale(signal.data);
+    if (signal && signal.type == 'show-sale') {
+      viewSale(signal.data);
+      dispatch({ type: "SIGNAL", value: null });
+    }
     if (signal && signal.type == 'refresh-sales') {
-      clearCache('sales');
       load();
+      dispatch({ type: "SIGNAL", value: null });
     }
   }, [signal]);
 
@@ -107,7 +106,7 @@ const Sales = () => {
       <Breadcrumb pageName="Sales" />
       
       <div className="min-h-[calc(100vh-250px)]">
-        <SalesTable data={sales} viewSale={viewSale} editSale={editSale} />
+        <SalesTable data={salesData.value? salesData.value : []} viewSale={viewSale} editSale={editSale} />
       </div>
 
       {
@@ -140,7 +139,7 @@ const Sales = () => {
         <SaleDialog
           closeFn={()=>setShowSaleDialog(false)}
           failFn={(err: any)=> toast(err.message)}
-          successFn={()=>{ setShowSaleDialog(false); clearCache(`sales`); load(pagination.current); }}
+          successFn={()=>{ setShowSaleDialog(false); load(pagination? pagination.current : null); }}
           data={showSaleDialog}
         />
       }

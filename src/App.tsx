@@ -29,7 +29,6 @@ import Settings from './pages/Settings';
 import config from './data/config';
 import Commissions from './pages/Commissions/Commisions';
 
-
 function App() {
   const navigate = useNavigate();
 
@@ -58,7 +57,6 @@ function App() {
           setHints(dispatch, response.data.hints);
         },
         onError: (err)=> toast(err.message),
-        allowCache: false,
       });
     };
     poll();

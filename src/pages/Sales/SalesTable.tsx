@@ -26,7 +26,7 @@ const SalesTable: React.FC<SalesTableProps> = ({data, viewSale, editSale}) => {
               <p className="font-medium">Sale Info</p>
             </div>
             <div className="col-span-2 hidden items-center sm:flex">
-              <p className="font-medium">Created At</p>
+              <p className="font-medium">Time</p>
             </div>
             <div className="col-span-1 flex items-center">
               <p className="font-medium">Amount</p>

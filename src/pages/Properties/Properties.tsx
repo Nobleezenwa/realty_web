@@ -5,7 +5,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/16/solid";
-import { request, clearCache } from '../../utils/request';
+import { request } from '../../utils/request';
 import { toast } from "react-toastify";
 import config from '../../data/config';
 import CategoryDialog from './CategoryDialog';
@@ -13,16 +13,16 @@ import PropertyGroup from './PropertyGroup';
 import {  
   useDashboardController,
   setBusy,
+  setCategoriesData,
 } from '../../context'
 import ConfirmationDialog from '../../components/Dialog/ConfirmationDialog';
 
 const Properties = () => {
   const [controller, dispatch] = useDashboardController();
-  const { userSession, signal } = controller;
+  const { userSession, categoriesData, signal } = controller;
 
   const [showCategoryDialog, setShowCategoryDialog] = React.useState(false);
   const [confirmation, setConfirmation] = React.useState<any>(false);
-  const [categories, setCategories] = React.useState<any>([]);
 
   const [pagination, setPagination] = React.useState<any>(null);
 
@@ -38,8 +38,7 @@ const Properties = () => {
       method: 'GET',
       url: config.backend + `/api/properties/categories?page=${page}`,
       callback: (res)=> {
-        //console.log(page, res.data);
-        setCategories((prev: any[])=> ([...res.data.data]));
+        setCategoriesData(dispatch, res.data.data, true);
         setPagination({
           next: Math.min(res.data.last_page, res.data.current_page + 1),
           previous: Math.max(1, res.data.current_page - 1),
@@ -48,64 +47,65 @@ const Properties = () => {
         });
       },
       onError: (err)=>toast(err.message),
-      cacheKey: 'categories'
     });
     setBusy(dispatch, false);
   };
+
   React.useEffect(()=>{
-    load();
-  }, []);
+    if (!categoriesData.isLoaded) load();
+  }, [categoriesData.isLoaded]);
 
   const gotoPreviousPage = ()=> {
-    clearCache('categories');
     load(pagination.previous);
   };
   const gotoPage = (e: any)=> {
     const value = parseInt(e.target.innerText.trim());
     if (pagerTimerRef.current) clearTimeout(pagerTimerRef.current);
     if (value) {
-      pagerTimerRef.current = setTimeout(()=>{ clearCache('categories'); load(value); }, 1500);
+      pagerTimerRef.current = setTimeout(()=>{ 
+        load(value); 
+      }, 1500);
     }
   };
   const gotoNextPage = ()=> {
-    clearCache('categories');
     load(pagination.next);
   };
 
   const editCategory = (category_id: any)=> {
-    setShowCategoryDialog(categories.find((c: any) => c.id == category_id));
+    if (categoriesData.value)
+      setShowCategoryDialog(categoriesData.value.find((c: any) => c.id == category_id));
   };
 
   const deleteCategory = (category_id: any) => {
-    setConfirmation({
-      message: "Are you sure to delete " + categories.find((c: any) => c.id == category_id).name + "?",
-      actionName: "Delete",
-      action: async () => {
-        setConfirmation(false);
+    if (categoriesData.value)
+      setConfirmation({
+        message: "Are you sure to delete " + categoriesData.value.find((c: any) => c.id == category_id).name + "?",
+        actionName: "Delete",
+        action: async () => {
+          setConfirmation(false);
 
-        setBusy(dispatch, true);
+          setBusy(dispatch, true);
 
-        await request({
-          method: 'DELETE',
-          url: config.backend + `/api/properties/category/${category_id}`,
-          headers: {'Authorization': `Bearer ${userSession.token}`},
-          callback: ()=>{
-            clearCache('categories');
-            load(pagination.current);
-          },
-          onError: (err: any)=>toast(err.message)
-        });
-    
-        setBusy(dispatch, false);    
-      },
-      closeFn: ()=>setConfirmation(false)
-    })
+          await request({
+            method: 'DELETE',
+            url: config.backend + `/api/properties/category/${category_id}`,
+            headers: {'Authorization': `Bearer ${userSession.token}`},
+            callback: ()=>{
+              load(pagination.current);
+            },
+            onError: (err: any)=>toast(err.message)
+          });
+      
+          setBusy(dispatch, false);    
+        },
+        closeFn: ()=>setConfirmation(false)
+      })
   };
 
   React.useEffect(()=> {
     if (signal && signal.type == 'refresh-categories') {
-      clearCache('payments');
       load();
+      dispatch({ type: "SIGNAL", value: null });
     }
   }, [signal]);
 
@@ -118,12 +118,12 @@ const Properties = () => {
       <div className="min-h-[calc(100vh-250px)]">
         <div className="pb-20">
           {
-            categories.map((c: any) => <PropertyGroup key={c.id} {...c} editCategory={editCategory} deleteCategory={deleteCategory} />)
+            categoriesData.value && categoriesData.value.map((c: any) => <PropertyGroup key={c.id} {...c} editCategory={editCategory} deleteCategory={deleteCategory} />)
           }
         </div>
 
         {
-          (categories.length == 0) &&
+          (!categoriesData.value || categoriesData.value.length == 0) &&
           <div className='px-2 py-10'>
             <p className="text-3xl text-center">No properties to show.</p>
           </div>
@@ -160,7 +160,10 @@ const Properties = () => {
         <CategoryDialog
           closeFn={()=>setShowCategoryDialog(false)}
           failFn={(err: any)=> toast(err.message)}
-          successFn={()=>{ setShowCategoryDialog(false); clearCache('categories'); load(); }}
+          successFn={()=>{ 
+            setShowCategoryDialog(false); 
+            setCategoriesData(dispatch, null, false); //also triggers React.useEffect => load()
+          }}
           data={showCategoryDialog}
         />
       }

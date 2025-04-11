@@ -11,16 +11,15 @@ import config from '../../data/config';
 import {  
   useDashboardController,
   setBusy,
+  setRealtorsData,
 } from '../../context';
 import RealtorDialog from './RealtorDialog';
 
-
 const Realtors = () => {
   const [controller, dispatch] = useDashboardController();
-  const { userSession, signal } = controller;
+  const { userSession, realtorsData, signal } = controller;
 
   const [pendingRealtors, setPendingRealtors] = React.useState<any>([]);
-  const [realtors, setRealtors] = React.useState<any>([]);
   const [showRealtorDialog, setShowRealtorDialog] = React.useState<any>(false);
 
   const [pagination, setPagination] = React.useState<any>(null);
@@ -41,7 +40,8 @@ const Realtors = () => {
         callback: (res)=> { 
           setPendingRealtors((prev: any[])=> ([...res.data]))
         },
-        onError: (err)=>toast(err.message)
+        onError: (err)=>toast(err.message),
+        cacheKey: 'pending_realtors',
       });  
     }
     await request({
@@ -49,7 +49,7 @@ const Realtors = () => {
       url: config.backend + `/api/users?page=${page}`,
       headers: {'Authorization': `Bearer ${userSession.token}`},
       callback: (res)=> { 
-        setRealtors((prev: any[])=> ([...res.data.data]));
+        setRealtorsData(dispatch, res.data.data, true);
         setPagination({
           next: Math.min(res.data.last_page, res.data.current_page + 1),
           previous: Math.max(1, res.data.current_page - 1),
@@ -58,16 +58,16 @@ const Realtors = () => {
         });
       },
       onError: (err)=>toast(err.message),
-      cacheKey: 'realtors',
     });  
     setBusy(dispatch, false);
   };
+
   React.useEffect(()=>{
-    load();
-  }, []);
+    if (!realtorsData.isLoaded) load();
+  }, [realtorsData.isLoaded]);
 
   const gotoPreviousPage = ()=> {
-    clearCache(`realtors`);
+    clearCache(`pending_realtors`);
     load(pagination.previous);
   };
   const gotoPage = (e: any)=> {
@@ -75,19 +75,19 @@ const Realtors = () => {
     if (pagerTimerRef.current) clearTimeout(pagerTimerRef.current);
     if (value) {
       pagerTimerRef.current = setTimeout(()=> {
-        clearCache(`realtors`);
+        clearCache(`pending_realtors`);
         load(value);
       }, 1500);
     }
   };
   const gotoNextPage = ()=> {
-    clearCache(`realtors`);
+    clearCache(`pending_realtors`);
     load(pagination.next);
   };
 
   const viewRealtor = (realtor: any)=> {
     setShowRealtorDialog({
-      data: (typeof realtor === 'object') ? realtor : realtors.find((r: any) => r.id == realtor),
+      data: (typeof realtor === 'object') ? realtor : realtorsData.value.find((r: any) => r.id == realtor),
     });
   };
 
@@ -104,7 +104,7 @@ const Realtors = () => {
       },
       callback: (res)=> {
         toast(res.data.message);
-        clearCache(`realtors`);
+        clearCache(`pending_realtors`);
         load(pagination.current);
       },
       onError: (err) => toast(err.message),
@@ -114,10 +114,14 @@ const Realtors = () => {
   };
 
   React.useEffect(()=> {
-    if (signal && signal.type == 'show-realtor') viewRealtor(signal.data);
+    if (signal && signal.type == 'show-realtor') {
+      viewRealtor(signal.data);
+      dispatch({ type: "SIGNAL", value: null });
+    }
     if (signal && signal.type == 'refresh-realtors') {
-      clearCache('realtors');
+      clearCache('pending_realtors');
       load();
+      dispatch({ type: "SIGNAL", value: null });
     }
   }, [signal]);
 
@@ -133,7 +137,7 @@ const Realtors = () => {
 
         <div className="mt-8"></div>
           
-        <RealtorsTable viewRealtor={viewRealtor} markRealtor={markRealtor} data={{type: 'existing', realtors}} />
+        <RealtorsTable viewRealtor={viewRealtor} markRealtor={markRealtor} data={{type: 'existing', realtors: realtorsData.value? realtorsData.value : []}} />
       </div>
 
       {

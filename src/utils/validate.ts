@@ -42,4 +42,3 @@ export const validateText = (text: string) => {
     if (text.trim().length > 191) { return {isValid: false, errMsg: "Name is too long. Use maximum of 191 characters."}; }
     return {isValid: true, errMsg: null, validated: text.trim()};
 };
-

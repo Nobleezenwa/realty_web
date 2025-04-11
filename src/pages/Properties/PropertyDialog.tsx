@@ -1,4 +1,10 @@
 import React from 'react';
+import { 
+  PlayIcon,
+  ArrowsPointingOutIcon,
+  CheckIcon,
+  XMarkIcon
+} from "@heroicons/react/16/solid";
 import Dialog from '../../components/Dialog';
 import {  
     useDashboardController,
@@ -37,6 +43,13 @@ const PropertyDialog: React.FC<any> = ({closeFn, successFn, failFn, data: _data}
     units: (data.units)? formatNumber(data.units) : "0",
     display_image: (data.display_image)? data.display_image : "",
   });
+
+  const [media, setMedia] = React.useState<any>([]);
+  const [formMediaData, setFormMediaData] = React.useState<any>({
+    title: "",
+    file: null,
+    type: null,
+  });
   
   // Handle form data changes
   const handleInputChange = (event: any) => {
@@ -71,17 +84,26 @@ const PropertyDialog: React.FC<any> = ({closeFn, successFn, failFn, data: _data}
 
     _formData.price = parseNumber(_formData.price);
     if (_formData.price <= 0) return toast("Set property price.");
+    
+    _formData.units = parseNumber(_formData.units);
 
     if (_formData.short_description.trim() == "") return toast("Enter property short description.");
+    _formData.short_description = _formData.short_description.trim();
+
     if (_formData.address.trim() == "") return toast("Enter property address.");
+    _formData.address = _formData.address.trim();
 
     if (_formData.display_image == "") return toast("Set property display image.");
     if (typeof _formData.display_image !== "string" && !_formData.display_image.type.startsWith('image/')) return toast("Invalid display image.");
     if (typeof _formData.display_image !== "string" && _formData.display_image.size > 2048000) return toast("Display image file size must not exceed 2MB.");
-    
-    _formData.units = parseNumber(_formData.units);
 
-    if (!_formData.pin || _formData.pin == "") delete _formData.pin;
+    if (!_formData.pin || _formData.pin.trim() == "") {
+      delete _formData.pin;
+    } else {
+      const pattern = /^https?:\/\/[^\s]+$/i;
+      if (!pattern.test(_formData.pin)) return toast("Invalid map link.");
+      _formData.pin = _formData.pin.trim();
+    }
 
     const data = new FormData();
     for (let ky in _formData) {
@@ -107,13 +129,92 @@ const PropertyDialog: React.FC<any> = ({closeFn, successFn, failFn, data: _data}
     setBusy(dispatch, false);
   };
 
+  const loadMedia = async ()=> {
+    await request({
+        method: 'GET',
+        url: config.backend + `/api/property/${data.id}/media`,
+        callback: (res) => {
+          setMedia(() => (res.data.media));
+        },
+        onError: (err) => toast(err.message),
+    });
+  };
+
+  React.useEffect(() => {
+    if (data.id) loadMedia();
+  }, []);
+
+  const handleMediaInputChange =  (event: any) => {
+    const { name, value } = event.target;
+    if (name == 'file') {
+      setFormMediaData({ ...formMediaData, [name]: event.target.files[0] });
+    }
+    else {
+      setFormMediaData({ ...formMediaData, [name]: value });
+    }
+  };
+
+  const handleMediaSubmit = async (event: any) => { 
+    event.preventDefault();
+
+    const _formData = {...formMediaData};
+
+    if (_formData.title.trim() == "") return toast("Enter media title.");
+    _formData.title = _formData.title.trim();
+
+    if (!_formData.file) return toast("Select media file.");
+    if (_formData.type == "video" && !_formData.file.type.startsWith('video/')) return toast("Invalid media file type. Use only MP4.");
+    if (_formData.type != "video" && !_formData.file.type.startsWith('image/')) return toast("Invalid media file type. Use only PNG, JPEG or JPG.");
+    if (_formData.file.size > 20971520) return toast("Media file size must not exceed 20MB.");
+
+    const fData = new FormData();
+    for (let ky in _formData) {
+      fData.append(ky, (_formData as any)[ky]);
+    }
+    
+    setBusy(dispatch, true);
+
+    await request({
+      method: 'POST',
+      url: `${config.backend}/api/property/${data.id}/media`,
+      headers: {
+        'Authorization': `Bearer ${userSession.token}`,
+      },
+      formData: fData,
+      callback: ()=>{
+        setFormMediaData({ title: "", file: null, type: null });
+        loadMedia();
+      },
+      onError: failFn
+    });
+
+    setBusy(dispatch, false);
+  };
+
+  const removeMedia = async (id: string) => { 
+    setBusy(dispatch, true);
+
+    await request({
+      method: 'DELETE',
+      url: `${config.backend}/api/property/media/${id}`,
+      headers: {
+        'Authorization': `Bearer ${userSession.token}`,
+      },
+      formData: data,
+      callback: loadMedia,
+      onError: failFn
+    });
+
+    setBusy(dispatch, false);
+  };
+
   const title = (data.name)? 
                 ((mode == 'edit')? `Edit Property (${data.name})` : data.name) : 
                 "New Property";
 
   return (
     <Dialog title={title} closeFn={closeFn} shareFn={shareFn} editFn={editFn}>
-      <Accordion title="Property Info">
+      <Accordion title="Property Info" bodyClass="mb-2">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5.5">
           <div className="max-w-96">
             <label className="mb-1 block text-black dark:text-white">
@@ -130,20 +231,37 @@ const PropertyDialog: React.FC<any> = ({closeFn, successFn, failFn, data: _data}
             />
           </div>
 
-          <div className="max-w-56">
-            <label className="mb-1 block text-black dark:text-white">
-              Price
-            </label>
-            <div className="flex items-center gap-2 w-full rounded-lg overflow-hidden border-[1.5px] border-stroke dark:border-form-strokedark dark:focus:border-primar">
-              <label className="mb-1 block text-black dark:text-white pl-2 pt-1">NGN</label>
+          <div className="flex justify-between gap-4">
+            <div className="w-1/2">
+              <label className="mb-1 block text-black dark:text-white">
+                Price
+              </label>
+              <div className="flex items-center gap-2 w-full rounded-lg overflow-hidden border-[1.5px] border-stroke dark:border-form-strokedark dark:focus:border-primar">
+                <label className="mb-1 block text-black dark:text-white pl-2 pt-1">NGN</label>
+                <input
+                  disabled={(mode != 'edit')}
+                  type="text"
+                  name="price"
+                  onChange={handleInputChange}
+                  value={formData.price}
+                  placeholder="0.00"
+                  className="flex-1 outline-none min-h-full py-3 px-2 bg-transparent text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:bg-form-input dark:text-whitey"         
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-black dark:text-white">
+                No. of Units
+              </label>
               <input
                 disabled={(mode != 'edit')}
                 type="text"
-                name="price"
+                name="units"
                 onChange={handleInputChange}
-                value={formData.price}
-                placeholder="0.00"
-                className="flex-1 outline-none min-h-full py-3 px-2 bg-transparent text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:bg-form-input dark:text-whitey"         
+                value={formData.units}
+                placeholder="0"
+                className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent py-3 px-5 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
               />
             </div>
           </div>
@@ -178,46 +296,49 @@ const PropertyDialog: React.FC<any> = ({closeFn, successFn, failFn, data: _data}
             ></textarea>
           </div>
 
+          <fieldset className="border border-dashed rounded">
+            <legend>Location</legend>
+            <div className="flex gap-4 px-4 py-2">
+              <div className="w-1/2">
+                <label className="mb-1 block text-black dark:text-white">
+                  Address
+                </label>
+                <input
+                  disabled={(mode != 'edit')}
+                  type="text"
+                  name="address"
+                  onChange={handleInputChange}
+                  value={formData.address}
+                  placeholder="Property location"
+                  className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent py-3 px-5 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                />
+              </div>
+
+              <div className="w-1/2">
+                <label className="mb-1 block text-black dark:text-white">
+                  Pin (Optional)
+                </label>
+                <input
+                  disabled={(mode != 'edit')}
+                  type="url"
+                  name="pin"
+                  onChange={handleInputChange}
+                  value={formData.pin}
+                  placeholder="Paste Google Map link here..."
+                  className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent py-3 px-5 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                />
+              </div>
+            </div>
+          </fieldset>
+
           <div className="flex justify-between gap-4">
-            <div>
-              <label className="mb-1 block text-black dark:text-white">
-                Address
-              </label>
-              <input
-                disabled={(mode != 'edit')}
-                type="text"
-                name="address"
-                onChange={handleInputChange}
-                value={formData.address}
-                placeholder="Property location"
-                className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent py-3 px-5 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-black dark:text-white">
-                No of Units
-              </label>
-              <input
-                disabled={(mode != 'edit')}
-                type="text"
-                name="units"
-                onChange={handleInputChange}
-                value={formData.units}
-                placeholder="0"
-                className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent py-3 px-5 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
-              />
-            </div>
-          </div>
-
-          <div onClick={(mode != 'edit' && imagePreview)? ()=>window.open(imagePreview) : ()=>{}} className="flex justify-between gap-4">
-            <div>
+            <div onClick={(mode != 'edit' && imagePreview)? ()=>window.open(imagePreview) : ()=>{}} className="w-1/2">
               <label className="mb-1 block text-black dark:text-white">
                 Display Image
               </label>
               <div
                 style={{backgroundImage: imagePreview? `url(${imagePreview})` : 'none'}}
-                className="min-w-[200px] min-h-[150px] flex items-center h-full bg-white bg-cover bg-center relative mb-5.5 block w-full cursor-pointer appearance-none rounded border border-dashed border-primary bg-gray py-4 px-4 dark:bg-meta-4 sm:py-7.5"
+                className="w-full min-h-[150px] flex items-center h-full bg-white bg-cover bg-center relative mb-5.5 block w-full cursor-pointer appearance-none rounded border border-dashed border-primary bg-gray py-4 px-4 dark:bg-meta-4 sm:py-7.5"
               >
                 <input
                   disabled={(mode != 'edit')}
@@ -228,7 +349,7 @@ const PropertyDialog: React.FC<any> = ({closeFn, successFn, failFn, data: _data}
                   className="absolute inset-0 z-50 m-0 h-full w-full cursor-pointer p-0 opacity-0 outline-none"
                 />
                 {(mode == 'edit') &&
-                  <div className="flex flex-col items-center justify-center space-y-3 bg-[rgba(255,255,255,0.7)] p-2">
+                  <div className="flex flex-col items-center justify-center space-y-3 bg-[rgba(255,255,255,0.7)] p-2 mx-auto">
                     <span className="flex h-10 w-10 items-center justify-center rounded-full border border-stroke bg-white dark:border-strokedark dark:bg-boxdark">
                       <svg
                         width="16"
@@ -277,24 +398,114 @@ const PropertyDialog: React.FC<any> = ({closeFn, successFn, failFn, data: _data}
           }
         </form>
       </Accordion>
-      <Accordion title="Property Media" className="hidden">
-            <div className="hidden flex-1">
-              <label className="mb-1 block text-black dark:text-white">
-                Media
-              </label>
-              <div className="w-full h-full border-y border-solid border-primary bg-gray p-1">
-                  <div className="bg-white rounded h-full min-w-[100px] max-w-[150px] rounded overflow-hidden">
-                    <div className="w-full h-4/5 overflow-hidden">
-                        <img className="min-w-full min-h-full rounded-t" src={`/img/properties/pegasus.jpg`} alt="flat" />
+
+      {data.id &&   
+        <Accordion title="Property Media" className="mt-4">
+          <div className="flex-1">
+            <label className="mb-1 block text-black dark:text-white">
+              Media
+            </label>
+            <div className="w-full flex gap-2 border-y border-solid border-primary bg-gray p-1 overflow-x-auto">
+              {
+                media.map(({id, title, file, type}: any)=>(
+                  <div key={id} title={title} onClick={() => window.open(`${config.storagePath}/${file}`)} className="cursor-pointer bg-white rounded h-[150px] min-w-[150px] max-w-[150px] rounded overflow-hidden">
+                    <div className="relative w-full h-4/5 bg-black overflow-hidden">
+                      {type == 'image' &&
+                        <img className="absolute min-w-full min-h-full rounded-t" src={`${config.storagePath}/${file}`} alt="flat" />
+                      }
+                      {type == 'video' &&
+                        <PlayIcon className="absolute min-w-6 max-w-6 fill-white" style={{ transform: 'translate(63px, 50px)' }} />
+                      }
+                      {type == 'pano' &&
+                        <img className="absolute min-w-full min-h-full rounded-t brightness-50" src={`${config.storagePath}/${file}`} alt="flat" />
+                      }
+                      {type == 'pano' &&
+                        <ArrowsPointingOutIcon className="absolute min-w-6 max-w-6 fill-white" style={{ transform: 'translate(63px, 50px)' }} />
+                      }
+                      {(mode == 'edit') &&
+                        <button onClick={(e) => {e.stopPropagation(); removeMedia(id);}} type="submit" className="absolute top-2 right-2 w-6 h-6 bg-white text-black hover:text-primary rounded-full flex items-center justify-center">
+                          <XMarkIcon className="min-w-4 max-w-4 fill-current" />
+                        </button>
+                      }
                     </div>
-                    <p className="text-center">The living room interior</p>
+                    <p className="text-center truncate px-1">{title}</p>
                   </div>
-              </div>
+                ))
+              }
+              {
+                (media.length == 0) &&
+                <p className="w-full text-center leading-[150px]">No media to show.</p>
+              }
             </div>
-      </Accordion>
-      <Accordion title="Property Sales" className="hidden">
-        show sales for this property
-      </Accordion>
+          </div>
+
+          {(formMediaData.type) && 
+            <form onSubmit={handleMediaSubmit}>
+              <fieldset className="mt-4 border border-dashed rounded">
+                <legend>
+                  {(formMediaData.type == 'image') && 'Add Image'}
+                  {(formMediaData.type == 'video') && 'Add Video'}
+                  {(formMediaData.type == 'pano') && 'Add Pano'}
+                </legend>
+                <div className="flex gap-4 px-4 py-2">
+                  <div className="w-1/3">
+                    <label className="mb-1 block text-black dark:text-white">
+                      Title
+                    </label>
+                    <input
+                      disabled={(mode != 'edit')}
+                      type="text"
+                      name="title"
+                      onChange={handleMediaInputChange}
+                      value={formMediaData.title}
+                      placeholder="Enter media title..."
+                      className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent py-3 px-5 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="w-1/3">
+                    <label className="mb-1 block text-black dark:text-white">
+                      File
+                    </label>
+                    <input
+                      disabled={(mode != 'edit')}
+                      type="file"
+                      name="file"
+                      onChange={handleMediaInputChange}
+                      placeholder="Select media file"
+                      accept={formMediaData.type == 'video'? '.mp4': '.jpg,.jpeg,.png'}
+                      className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent py-3 px-5 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="w-1/3 pt-5 flex items-center justify-start gap-2">
+                    <button type="submit" className="hover:text-primary mx-2">
+                      <CheckIcon className="min-w-6 max-w-6 fill-current" />
+                    </button>
+                    <button onClick={(e) => { e.preventDefault(); setFormMediaData({ title: "", file: null, type: null }); }} className="hover:text-primary mx-2">
+                      <XMarkIcon className="min-w-6 max-w-6 fill-current" />
+                    </button>
+                  </div>
+                </div>
+              </fieldset>
+            </form>
+          }
+
+          {(mode == 'edit' && !formMediaData.type) &&
+            <div className="mt-4 flex gap-4">
+              <button onClick={()=>setFormMediaData({ ...formMediaData, type: "image" })} className="cursor-pointer items-center justify-center bg-primary py-4 px-10 text-center font-medium text-white hover:bg-opacity-90 lg:px-8 xl:px-10">
+                Add Image
+              </button>
+              <button onClick={()=>setFormMediaData({ ...formMediaData, type: "video" })} className="cursor-pointer items-center justify-center bg-primary py-4 px-10 text-center font-medium text-white hover:bg-opacity-90 lg:px-8 xl:px-10">
+                Add Video
+              </button>
+              <button onClick={()=>setFormMediaData({ ...formMediaData, type: "pano" })} className="cursor-pointer items-center justify-center bg-primary py-4 px-10 text-center font-medium text-white hover:bg-opacity-90 lg:px-8 xl:px-10">
+                Add Pano
+              </button>
+            </div>
+          }
+        </Accordion>
+      }
     </Dialog>
   );
 }

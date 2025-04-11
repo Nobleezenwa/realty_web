@@ -13,15 +13,15 @@ import PaymentDialog from './PaymentDialog';
 import {  
   useDashboardController,
   setBusy,
+  setPaymentsData,
 } from '../../context';
 
 
 const Payments = () => {
   const [controller, dispatch] = useDashboardController();
-  const { userSession, signal, profile } = controller;
+  const { userSession, paymentsData, signal, profile } = controller;
 
   const [showPaymentDialog, setShowPaymentDialog] = React.useState<any>(false);
-  const [payments, setPayments] = React.useState<any>([]);
 
   const [pagination, setPagination] = React.useState<any>(null);
 
@@ -38,7 +38,7 @@ const Payments = () => {
       url: config.backend + `/api/payments?page=${page}`,
       headers: {'Authorization': `Bearer ${userSession.token}`},
       callback: (res)=> {
-        setPayments((prev: any[])=> ([...res.data.data]))
+        setPaymentsData(dispatch, [...res.data.data], true);
         setPagination({
           next: Math.min(res.data.last_page, res.data.current_page + 1),
           previous: Math.max(1, res.data.current_page - 1),
@@ -47,16 +47,14 @@ const Payments = () => {
         });
       },
       onError: (err)=>toast(err.message),
-      cacheKey: 'payments'
     });
     setBusy(dispatch, false);
   };
   React.useEffect(()=>{
-    load();
-  }, []);
+    if (!paymentsData.isLoaded) load();
+  }, [paymentsData.isLoaded]);
 
   const gotoPreviousPage = ()=> {
-    clearCache('payments');
     load(pagination.previous);
   }
   const gotoPage = (e: any)=> {
@@ -64,13 +62,11 @@ const Payments = () => {
     if (pagerTimerRef.current) clearTimeout(pagerTimerRef.current);
     if (value) {
       pagerTimerRef.current = setTimeout(()=> {
-        clearCache('payments');
         load(value);
       }, 1500);
     }
   };
   const gotoNextPage = ()=> {
-    clearCache('payments');
     load(pagination.next);
   }
 
@@ -83,23 +79,26 @@ const Payments = () => {
 
   const viewPayment = (payment: any)=> {
     setShowPaymentDialog({
-      data: (typeof payment === 'object') ? payment : payments.find((s: any) => s.id == payment),
+      data: (typeof payment === 'object') ? payment : paymentsData.value.find((s: any) => s.id == payment),
       mode: 'view',
     });
   };
 
   const editPayment = (userSession.as == 'admin') ? (payment_id: any) => {
     setShowPaymentDialog({
-      data: payments.find((s: any) => s.id == payment_id),
+      data: paymentsData.value.find((s: any) => s.id == payment_id),
       mode: 'edit',
     });
   } : false;
 
   React.useEffect(()=> {
-    if (signal && signal.type == 'show-payment') viewPayment(signal.data);
+    if (signal && signal.type == 'show-payment') {
+      viewPayment(signal.data);
+      dispatch({ type: "SIGNAL", value: null });
+    }
     if (signal && signal.type == 'refresh-payments') {
-      clearCache('payments');
       load();
+      dispatch({ type: "SIGNAL", value: null });
     }
   }, [signal]);
 
@@ -108,7 +107,7 @@ const Payments = () => {
       <Breadcrumb pageName="Payments" />
 
       <div className="min-h-[calc(100vh-250px)]">
-        <PaymentsTable data={payments} viewPayment={viewPayment} editPayment={editPayment} />
+        <PaymentsTable data={paymentsData.value? paymentsData.value : []} viewPayment={viewPayment} editPayment={editPayment} />
 
         {(profile && !profile.is_suspended) && 
           <button onClick={addToPayment} className='grid place-items-center fixed bottom-4 right-6 rounded-full w-16 h-16 text-white hover:bg-opacity-90 border border-stroke bg-primary shadow-2xl dark:border-strokedark dark:bg-boxdark'>

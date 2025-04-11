@@ -1,16 +1,16 @@
 const config = {
-    appName: "Crown Elite Realtors",
+    appName: "Pella Homes & Properties",
 
-	//base: "/crdash",
-	base: "",
+	base: "/pella",
+	//base: "",
 
     backend: "http://localhost:8000",
-    frontend: "http://localhost:5173/crdash",
+    frontend: "http://localhost:5173/pella",
     storagePath: "http://localhost:8000/storage",
     
-    //backend: "https://ableejiofor.com/crdash/backend",
-    //frontend: "https://ableejiofor.com/crdash",
-    //storagePath: "https://ableejiofor.com/crdash/backend/public/storage",
+    //backend: "https://ableejiofor.com/pella/backend",
+    //frontend: "https://ableejiofor.com/pella",
+    //storagePath: "https://ableejiofor.com/pella/backend/public/storage",
 
     //backend: "https://crowneliterealtors.com.ng/backend",
     //frontend: "https://crowneliterealtors.com.ng",
