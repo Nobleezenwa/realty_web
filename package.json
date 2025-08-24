@@ -1,0 +1,16 @@
+{
+  "name": "realty_web",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev:client": "pnpm --filter client dev",
+    "dev:dash": "pnpm --filter dash dev",
+    "build:client": "pnpm --filter client build",
+    "build:dash": "pnpm --filter dash build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.11.0"
+}
