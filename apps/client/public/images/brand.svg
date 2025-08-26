@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="152.85611mm"
+   height="33.76226mm"
+   viewBox="0 0 152.85611 33.76226"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   sodipodi:docname="brand.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="0.42137346"
+     inkscape:cx="206.46768"
+     inkscape:cy="65.262772"
+     inkscape:window-width="1300"
+     inkscape:window-height="699"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-28.571945,-131.61887)">
+    <g
+       id="g1834">
+      <rect
+         style="fill:#009689;fill-opacity:1;stroke-width:0.244275"
+         id="rect1514"
+         width="152.85611"
+         height="33.76226"
+         x="28.571945"
+         y="131.61887"
+         ry="7.4851665" />
+      <text
+         xml:space="preserve"
+         style="font-size:22.5778px;fill:#009689;fill-opacity:1;stroke-width:0.264583"
+         x="38.372906"
+         y="156.57156"
+         id="text1673"><tspan
+           sodipodi:role="line"
+           id="tspan1671"
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:22.5778px;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';fill:#ffffff;stroke-width:0.264583"
+           x="38.372906"
+           y="156.57156">NABEWORK</tspan></text>
+    </g>
+  </g>
+</svg>

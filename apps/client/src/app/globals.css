@@ -2,25 +2,46 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --surface: #eeeeee;
+  --text: #0a0a0a;
+  --accent: #009689;
+  --accentContrast: #ffffff;
+  --border: rgb(221 221 221);
+  /* legacy/compat alias used elsewhere in the app */
+  --foreground: var(--text);
+}
+
+/* Dark theme variables (toggle by adding the `dark` class to <html> or <body>) */
+.dark {
+  --background: #1c1b22; /* page background */
+  --surface: #2b2a33; /* elevated surfaces/cards */
+  --text: #e6eef6; /* primary text color */
+  --border: rgb(35, 34, 41);
+  --foreground: var(--text);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  
+  --font-sans: var(--font-poppins);
+  --font-serif: var(--font-nunito);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, .06);
+
+  /* Container defaults */
+  --container-padding: 1rem;
+  --container-center: true;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+}
+
+button {
+  cursor: pointer;
 }
